@@ -1,0 +1,29 @@
+{
+    "name": "Song visualizer",
+    "description": "",
+    "dependencies": {
+        "device": "*",
+        "arcade-fancy-text": "github:riknoll/arcade-fancy-text#v0.2.1"
+    },
+    "files": [
+        "main.blocks",
+        "main.ts",
+        "README.md",
+        "assets.json"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "targetVersions": {
+        "branch": "master",
+        "tag": "v4.1.4",
+        "commits": "https://github.com/microsoft/pxt-arcade/commits/f6a139b3f974ed613ced6df7421f321e09bfe985",
+        "target": "4.1.4",
+        "pxt": "12.3.10",
+        "targetId": "arcade"
+    },
+    "supportedTargets": [
+        "arcade"
+    ],
+    "preferredEditor": "tsprj"
+}
