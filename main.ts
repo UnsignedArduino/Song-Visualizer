@@ -661,7 +661,7 @@ namespace SongVisualizer {
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 15);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 15);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1);
-            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.Columns, trackCount > 16 ? 2 : 1);
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.Columns, trackCount > 15 ? 2 : 1);
             miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.Rows, 16);
 
             // If we add them in after, the cursor moves along so it defaults to putting on do not highlight
@@ -804,7 +804,7 @@ game.onUpdate(() => {
     const pushInstrMenuDownTo = Math.max(titleSprite.bottom, playbackProgressSprite.bottom);
     let height = canvasSprite.height - pushInstrMenuDownTo - 12 - 4;
     if (SHOW_RENDER_STATS) {
-        height -= renderStatsSprite.height;
+        height -= renderStatsSprite.height + 2;
     }
     miniMenu.setDimensions(
         visualizer.instrumentMenu,
