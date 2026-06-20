@@ -4,6 +4,7 @@ const midiDrumNoteMap: number[] = [36, 38, 42, 44, 45, 46, 47, 48, 49, 50, 57];
 const trackInstrumentMap: number[] = [34, 48, 52, 56, 57, 88, 90, 118, -1];
 
 const title = "Never Gonna Give You Up\nRick Astley\nArranged by @Banana1242 on MuseScore\nInstrument file by Cyrus Yiu";
+// const title = ""
 // arrangement from https://musescore.com/user/33272014/scores/6356612
 
 const textColor = 1;
@@ -17,6 +18,7 @@ const progressToPlayBackColor = 12;
 const progressPlayedBackColor = 2;
 
 const SHOW_RENDER_STATS = true;
+// const SHOW_RENDER_STATS = false;
 
 const RENDERABLE_NOTES_TO_PREALLOC = 500;
 
@@ -784,7 +786,8 @@ game.onUpdate(() => {
     // Instrument/track menu render
     visualizer.updateInstrumentMenu();
     // Update instrument menu positioning as required
-    let height = canvasSprite.height - titleSprite.bottom - 12 - 4;
+    const pushInstrMenuDownTo = Math.max(titleSprite.bottom, playbackProgressSprite.bottom);
+    let height = canvasSprite.height - pushInstrMenuDownTo - 12 - 4;
     if (SHOW_RENDER_STATS) {
         height -= renderStatsSprite.height;
     }
@@ -794,7 +797,7 @@ game.onUpdate(() => {
         height
     );
     visualizer.instrumentMenu.left = 2;
-    visualizer.instrumentMenu.top = titleSprite.bottom + 2;
+    visualizer.instrumentMenu.top = pushInstrMenuDownTo + 2;
     // Update time
     // const time = `${visualizer.currentTick}/${visualizer.maxTick}`;
     // const time = `${Math.roundWithPrecision(visualizer.currentSecond, 3)}/${visualizer.maxSecond}`;
