@@ -4,8 +4,8 @@ const midiDrumNoteMap: number[] = [36, 38, 42, 44, 45, 46, 47, 48, 49, 50, 57];
 const trackInstrumentMap: number[] = [34, 48, 52, 56, 57, 88, 90, 118, -1];
 
 const title = "Never Gonna Give You Up\nRick Astley\nArranged by @Banana1242 on MuseScore\nInstrument file by Cyrus Yiu";
-// const title = ""
 // arrangement from https://musescore.com/user/33272014/scores/6356612
+// const title = ""
 
 const textColor = 1;
 const octaveLineColor = 12;
@@ -638,38 +638,42 @@ namespace SongVisualizer {
         protected instrumentMenuSprite: Sprite;
 
         private createInstrumentMenu() {
-            this.instrumentMenuSprite = miniMenu.createMenuFromArray([]);
-            this.instrumentMenuSprite.z = 1;
-            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.BackgroundColor, 15);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Foreground, 1);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Background, 15);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 15);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1);
-
-            const trackItem = miniMenu.createMenuItem("Track Map");
-            trackItem.setIcon(image.create(6, 6));
-            miniMenu.insertMenuItem(
-                this.instrumentMenuSprite,
-                trackItem
-            );
-
-            for (let i = 0; i < this.songObj.tracks.length; i++) {
+            const items = [];
+            const trackCount = this.songObj.tracks.length
+            for (let i = 0; i < trackCount; i++) {
                 let trackName = `${i}`;
                 const trackItem = miniMenu.createMenuItem(trackName);
                 trackItem.setIcon(image.create(6, 6));
-                miniMenu.insertMenuItem(
-                    this.instrumentMenuSprite,
-                    trackItem
-                );
+                items.push(trackItem);
+            }
+            const trackItem = miniMenu.createMenuItem("Do not highlight");
+            trackItem.setIcon(image.create(6, 6));
+            items.push(trackItem);
+
+            this.instrumentMenuSprite = miniMenu.createMenuFromArray([]);
+            this.instrumentMenuSprite.z = 1;
+            miniMenu.setTitle(this.instrumentMenuSprite, "Track Map");
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.BackgroundColor, 15);
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.ScrollIndicatorColor, 1);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Foreground, 1);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Background, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 1);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1);
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.Columns, trackCount > 16 ? 2 : 1);
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.Rows, 16);
+
+            // If we add them in after, the cursor moves along so it defaults to putting on do not highlight
+            for (const item of items) {
+                miniMenu.insertMenuItem(this.instrumentMenuSprite, item);
             }
 
-            miniMenu.moveSelection(this.instrumentMenuSprite, 1);
-
             miniMenu.onSelectionChanged(this.instrumentMenuSprite, (selection: string, selectedIndex: number) => {
-                if (selectedIndex == 0) {
+                if (selection == "Do not highlight") {
                     this.tracksToHighlight = [];
                 } else {
-                    this.tracksToHighlight = [selectedIndex - 1];
+                    this.tracksToHighlight = [selectedIndex];
                 }
             });
 
@@ -691,14 +695,21 @@ namespace SongVisualizer {
         }
 
         public updateInstrumentMenu() {
-            for (let i = 0; i < this.songObj.tracks.length; i ++) {
+            const trackCount = this.songObj.tracks.length;
+            for (let i = 0; i < trackCount; i ++) {
                 const noteCount = this._noteCountsOnTracks[i];
                 const active = noteCount > 0;
 
                 let trackName = `${i}`;
+                if (trackCount >= 10 && i < 10) {
+                    trackName = `0${trackName}`;
+                }
+                if (trackCount >= 100 && i < 100) {
+                    trackName = `0${trackName}`;
+                }
                 if (this.trackInstrumentMap.length > i) {
                     const midiInstrument = this.trackInstrumentMap[i];
-                    if (midiInstrument > 0) {
+                    if (midiInstrument >= 0) {
                         trackName += ` ${GENERAL_MIDI_1_MELODIC_INSTRUMENT_NAMES[midiInstrument]}`;
                     } else {
                         trackName += ` ${GENERAL_MIDI_1_DRUM_INSTRUMENT_NAME}`;
@@ -706,19 +717,23 @@ namespace SongVisualizer {
                 }
                 trackName += `: ${noteCount}`;
 
-                const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, i + 1);
+                const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, i);
                 trackItem.setText(trackName);
 
                 const trackItemIcon = trackItem.getIcon()
                 trackItemIcon.fill(this._trackColors[i]);
+                // trackItemIcon.setPixel(0, 0, 0);
+                // trackItemIcon.setPixel(trackItemIcon.width - 1, 0, 0);
+                // trackItemIcon.setPixel(trackItemIcon.width - 1, trackItemIcon.height - 1, 0);
+                // trackItemIcon.setPixel(0, trackItemIcon.height - 1, 0);
                 if (!active) {
                     trackItemIcon.drawRect(0, 0, trackItemIcon.width, trackItemIcon.height, 0);
                     trackItemIcon.drawRect(1, 1, trackItemIcon.width - 1, trackItemIcon.height - 1, 0);
                     trackItemIcon.drawRect(1, 1, trackItemIcon.width - 2, trackItemIcon.height - 2, 0);
                 }
             }
-            const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, 0);
-            trackItem.setText("Track Map");
+            const items = miniMenu.getMenuItems(this.instrumentMenuSprite);
+            items[items.length - 1].setText("Do not highlight");
         }
 
         public closeInstrumentMenu() {
