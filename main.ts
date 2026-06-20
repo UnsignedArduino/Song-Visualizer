@@ -3,7 +3,8 @@ const songHex = hex`00780004186C0900001C00010500C8009001640000030000000064000000
 const midiDrumNoteMap: number[] = [36, 38, 42, 44, 45, 46, 47, 48, 49, 50, 57];
 const trackInstrumentMap: number[] = [34, 48, 52, 56, 57, 88, 90, 118, -1];
 
-const title = "";
+const title = "Never Gonna Give You Up\nRick Astley\nArranged by @Banana1242 on MuseScore\nInstrument file by Cyrus Yiu";
+// arrangement from https://musescore.com/user/33272014/scores/6356612
 
 const textColor = 1;
 const octaveLineColor = 12;
@@ -29,6 +30,140 @@ game.consoleOverlay.setVisible(true);
 scene.setBackgroundColor(0);
 
 namespace SongVisualizer {
+    // -1
+    export const GENERAL_MIDI_1_DRUM_INSTRUMENT_NAME = "Standard Drums";
+    // 0 to 127
+    export const GENERAL_MIDI_1_MELODIC_INSTRUMENT_NAMES = [
+        "Acoustic Grand Piano",
+        "Bright Acoustic Piano",
+        "Electric Grand Piano",
+        "Honky-tonk Piano",
+        "Electric Piano 1",
+        "Electric Piano 2",
+        "Harpsichord",
+        "Clavinet",
+        "Celesta",
+        "Glockenspiel",
+        "Music Box",
+        "Vibraphone",
+        "Marimba",
+        "Xylophone",
+        "Tubular Bells",
+        "Dulcimer",
+        "Drawbar Organ",
+        "Percussive Organ",
+        "Rock Organ",
+        "Church Organ",
+        "Reed Organ",
+        "Accordion",
+        "Harmonica",
+        "Tango Accordion",
+        "Acoustic Guitar (nylon)",
+        "Acoustic Guitar (steel)",
+        "Electric Guitar (jazz)",
+        "Electric Guitar (clean)",
+        "Electric Guitar (muted)",
+        "Overdriven Guitar",
+        "Distortion Guitar",
+        "Guitar harmonics",
+        "Acoustic Bass",
+        "Electric Bass (finger)",
+        "Electric Bass (pick)",
+        "Fretless Bass",
+        "Slap Bass 1",
+        "Slap Bass 2",
+        "Synth Bass 1",
+        "Synth Bass 2",
+        "Violin",
+        "Viola",
+        "Cello",
+        "Contrabass",
+        "Tremolo Strings",
+        "Pizzicato Strings",
+        "Orchestral Harp",
+        "Timpani",
+        "String Ensemble 1",
+        "String Ensemble 2",
+        "Synth Strings 1",
+        "Synth Strings 2",
+        "Choir Aahs",
+        "Voice Oohs",
+        "Synth Voice",
+        "Orchestra Hit",
+        "Trumpet",
+        "Trombone",
+        "Tuba",
+        "Muted Trumpet",
+        "French Horn",
+        "Brass Section",
+        "Synth Brass 1",
+        "Synth Brass 2",
+        "Soprano Sax",
+        "Alto Sax",
+        "Tenor Sax",
+        "Baritone Sax",
+        "Oboe",
+        "English Horn",
+        "Bassoon",
+        "Clarinet",
+        "Piccolo",
+        "Flute",
+        "Recorder",
+        "Pan Flute",
+        "Blown Bottle",
+        "Shakuhachi",
+        "Whistle",
+        "Ocarina",
+        "Lead 1 (square)",
+        "Lead 2 (sawtooth)",
+        "Lead 3 (calliope)",
+        "Lead 4 (chiff)",
+        "Lead 5 (charang)",
+        "Lead 6 (voice)",
+        "Lead 7 (fifths)",
+        "Lead 8 (bass + lead)",
+        "Pad 1 (new age)",
+        "Pad 2 (warm)",
+        "Pad 3 (polysynth)",
+        "Pad 4 (choir)",
+        "Pad 5 (bowed)",
+        "Pad 6 (metallic)",
+        "Pad 7 (halo)",
+        "Pad 8 (sweep)",
+        "FX 1 (rain)",
+        "FX 2 (soundtrack)",
+        "FX 3 (crystal)",
+        "FX 4 (atmosphere)",
+        "FX 5 (brightness)",
+        "FX 6 (goblins)",
+        "FX 7 (echoes)",
+        "FX 8 (sci-fi)",
+        "Sitar",
+        "Banjo",
+        "Shamisen",
+        "Koto",
+        "Kalimba",
+        "Bag pipe",
+        "Fiddle",
+        "Shanai",
+        "Tinkle Bell",
+        "Agogo",
+        "Steel Drums",
+        "Woodblock",
+        "Taiko Drum",
+        "Melodic Tom",
+        "Synth Drum",
+        "Reverse Cymbal",
+        "Guitar Fret Noise",
+        "Breath Noise",
+        "Seashore",
+        "Bird Tweet",
+        "Telephone Ring",
+        "Helicopter",
+        "Applause",
+        "Gunshot",
+    ];
+
     export interface RenderStats {
         notesOnScreen: number;
         noteRenderablePoolSize: number;
@@ -59,6 +194,7 @@ namespace SongVisualizer {
         // every time a track presses it down it removes it from the list and readds to the beginning of the list
         // then the first number is used to render the key color
         protected keyStates: number[] = [];
+        protected _noteCountsOnTracks: number[] = [];
         // we preallocate a bunch of renderable notes and just reuse them
         // lowers/zeros the amount of allocs every frame
         private _notesToRender: RenderableNote[] = [];
@@ -81,19 +217,19 @@ namespace SongVisualizer {
         f 1 1 1
     `;
         private _whiteKeyActivatedImage: Image = img`
-        f f f f
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-        f 9 9 9
-    `;
+            f f f f
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+            f 9 9 9
+        `;
         private _blackKeyImage: Image = img`
         f f f
         f f f
@@ -133,12 +269,14 @@ namespace SongVisualizer {
             // Track helpers
             for (let i = 0; i < this.songObj.tracks.length; i ++) {
                 this._lastTrackPos.push(0);
+                this._noteCountsOnTracks.push(0);
             }
             // Key rendering
             for (let i = 0; i < 128; i++) {
                 this.keyStates.push(0);
                 this._keyLefts.push(this.getKeyLeft(i));
             }
+            this.createInstrumentMenu();
         }
 
         public preallocateRenderableNotes(amount: number) {
@@ -188,7 +326,8 @@ namespace SongVisualizer {
             this._trackColors = [];
             for (let i = 0; i < this.songObj.tracks.length; i++) {
                 const midiInstrument = this.trackInstrumentMap[i];
-                this._trackColors.push(midiInstrumentToColorsMap[midiInstrument]);
+                const color = midiInstrumentToColorsMap[midiInstrument];
+                this._trackColors.push(color);
             }
         }
         public set progressToPlayBackColor(c: number) { this._progressToPlayBackColor = c; }
@@ -238,6 +377,9 @@ namespace SongVisualizer {
             for (let i = 0; i < 128; i++) {
                 this.keyStates[i] = -1;
             }
+            for (let i = 0; i < this._noteCountsOnTracks.length; i++) {
+                this._noteCountsOnTracks[i] = 0;
+            }
             for (const n of notes) {
                 this.canvas.fillRect(n.left, n.top, n.width, n.height, n.color);
                 // activate notes on the keyboard here
@@ -247,6 +389,7 @@ namespace SongVisualizer {
                     }
                     this.keyStates[n.note] = n.trackIdx;
                     stats.notesOnKeyboard ++;
+                    this._noteCountsOnTracks[n.trackIdx] ++;
                 }
             }
 
@@ -459,6 +602,79 @@ namespace SongVisualizer {
         public get maxSecond(): number {
             return this.maxTick / this.ticksPerSec;
         }
+
+        protected instrumentMenuSprite: Sprite;
+
+        private createInstrumentMenu() {
+            this.instrumentMenuSprite = miniMenu.createMenuFromArray([]);
+            this.instrumentMenuSprite.z = 1;
+            miniMenu.setTitle(this.instrumentMenuSprite, "Track Map");
+            miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.BackgroundColor, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Foreground, 1);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Background, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 1);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 15);
+            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1);
+
+            for (let i = 0; i < this.songObj.tracks.length; i++) {
+                let trackName = `${i}`;
+                const trackItem = miniMenu.createMenuItem(trackName);
+                trackItem.setIcon(image.create(6, 6));
+                miniMenu.insertMenuItem(
+                    this.instrumentMenuSprite,
+                    trackItem
+                );
+            }
+
+            this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, true);
+        }
+
+        public openInstrumentMenu() {
+            this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, false);
+        }
+
+        public get instrumentMenu(): Sprite {
+            return this.instrumentMenuSprite;
+        }
+
+        public get instrumentMenuOpen(): boolean {
+            const isInvisible = this.instrumentMenuSprite.flags & SpriteFlag.Invisible;
+            return !isInvisible;
+        }
+
+        public updateInstrumentMenu() {
+            for (let i = 0; i < this.songObj.tracks.length; i ++) {
+                const noteCount = this._noteCountsOnTracks[i];
+                const active = noteCount > 0;
+
+                let trackName = `${i}`;
+                if (this.trackInstrumentMap.length > i) {
+                    const midiInstrument = this.trackInstrumentMap[i];
+                    if (midiInstrument > 0) {
+                        trackName += ` ${GENERAL_MIDI_1_MELODIC_INSTRUMENT_NAMES[midiInstrument]}`;
+                    } else {
+                        trackName += ` ${GENERAL_MIDI_1_DRUM_INSTRUMENT_NAME}`;
+                    }
+                }
+                trackName += `: ${noteCount}`;
+
+                const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, i);
+                trackItem.setText(trackName);
+
+                const trackItemIcon = trackItem.getIcon()
+                trackItemIcon.fill(this._trackColors[i]);
+                if (!active) {
+                    trackItemIcon.drawRect(0, 0, trackItemIcon.width, trackItemIcon.height, 0);
+                    trackItemIcon.drawRect(1, 1, trackItemIcon.width - 1, trackItemIcon.height - 1, 0);
+                    trackItemIcon.drawRect(1, 1, trackItemIcon.width - 2, trackItemIcon.height - 2, 0);
+                }
+            }
+        }
+
+        public closeInstrumentMenu() {
+            this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, true);
+        }
     }
 }
 
@@ -498,6 +714,14 @@ visualizer.progressToPlayBackColor = progressToPlayBackColor;
 // visualizer.noteStretch = 0.5;
 visualizer.play();
 
+controller.B.onEvent(ControllerButtonEvent.Pressed, () => {
+    if (visualizer.instrumentMenuOpen) {
+        visualizer.closeInstrumentMenu();
+    } else {
+        visualizer.openInstrumentMenu();
+    }
+});
+
 function formatTime(totalSecs: number): string {
     const min = Math.floor(totalSecs / 60);
     const sec = totalSecs % 60;
@@ -507,7 +731,22 @@ function formatTime(totalSecs: number): string {
 }
 
 game.onUpdate(() => {
+    // Visualizer render
     const renderStats = visualizer.render();
+    // Instrument/track menu render
+    visualizer.updateInstrumentMenu();
+    // Update instrument menu positioning as required
+    let height = canvasSprite.height - titleSprite.bottom - 12 - 4;
+    if (SHOW_RENDER_STATS) {
+        height -= renderStatsSprite.height;
+    }
+    miniMenu.setDimensions(
+        visualizer.instrumentMenu,
+        canvasSprite.width - 4,
+        height
+    );
+    visualizer.instrumentMenu.left = 2;
+    visualizer.instrumentMenu.top = titleSprite.bottom + 2;
     // Update time
     // const time = `${visualizer.currentTick}/${visualizer.maxTick}`;
     // const time = `${Math.roundWithPrecision(visualizer.currentSecond, 3)}/${visualizer.maxSecond}`;
