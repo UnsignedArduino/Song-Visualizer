@@ -177,6 +177,7 @@ namespace SongVisualizer {
         width: number;
         height: number;
         color: number;
+        highlight: boolean;
         trackIdx: number;
         note: number;
         active: boolean;
@@ -190,15 +191,14 @@ namespace SongVisualizer {
         protected sequencer: music.sequencer._SimulatorSequencer;
         protected songObj: music.sequencer.Song;
         // always 128 long
-        // every key is a list of tracks that are pressing it down
-        // every time a track presses it down it removes it from the list and readds to the beginning of the list
-        // then the first number is used to render the key color
         protected keyStates: number[] = [];
+        protected keyHighlight: boolean[] = [];
         protected _noteCountsOnTracks: number[] = [];
         // we preallocate a bunch of renderable notes and just reuse them
         // lowers/zeros the amount of allocs every frame
         private _notesToRender: RenderableNote[] = [];
         private _renderNoteIdx: number = 0;
+        public tracksToHighlight: number[] = [];
         // for track iteration
         private _lastTrackPos: number[] = []
 
@@ -231,14 +231,14 @@ namespace SongVisualizer {
             f 9 9 9
         `;
         private _blackKeyImage: Image = img`
-        f f f
-        f f f
-        f f f
-        f f f
-        f f f
-        f f f
-        f f f
-    `;
+            f f f
+            f f f
+            f f f
+            f f f
+            f f f
+            f f f
+            f f f
+        `;
         private _blackKeyActivatedImage: Image = img`
             f f f
             9 9 9
@@ -274,6 +274,7 @@ namespace SongVisualizer {
             // Key rendering
             for (let i = 0; i < 128; i++) {
                 this.keyStates.push(0);
+                this.keyHighlight.push(false);
                 this._keyLefts.push(this.getKeyLeft(i));
             }
             this.createInstrumentMenu();
@@ -287,6 +288,7 @@ namespace SongVisualizer {
                     width: 0,
                     height: 0,
                     color: 0,
+                    highlight: false,
                     trackIdx: 0, 
                     note: 0,
                     active: false
@@ -376,18 +378,23 @@ namespace SongVisualizer {
 
             for (let i = 0; i < 128; i++) {
                 this.keyStates[i] = -1;
+                this.keyHighlight[i] = false;
             }
             for (let i = 0; i < this._noteCountsOnTracks.length; i++) {
                 this._noteCountsOnTracks[i] = 0;
             }
             for (const n of notes) {
                 this.canvas.fillRect(n.left, n.top, n.width, n.height, n.color);
+                if (n.highlight) {
+                    this.canvas.drawRect(n.left - 1, n.top - 1, n.width + 2, n.height + 2, 1);
+                }
                 // activate notes on the keyboard here
                 if (n.active) {
                     if (this.keyStates[n.note] == -1) {
                         stats.notesVisibleOnKeyboard ++;
                     }
                     this.keyStates[n.note] = n.trackIdx;
+                    this.keyHighlight[n.note] = n.highlight;
                     stats.notesOnKeyboard ++;
                     this._noteCountsOnTracks[n.trackIdx] ++;
                 }
@@ -458,6 +465,7 @@ namespace SongVisualizer {
                         const isBlack = this.isBlackKey(note);
                         const width = isBlack ? this._blackKeyImage.width : (this._whiteKeyImage.width - 1);
                         const color = this._trackColors[trackIdx];
+                        const highlight = this.tracksToHighlight.indexOf(trackIdx) != -1;
                         const left = this._keyLefts[note] + (isBlack ? 0 : 1);
                         if (this._renderNoteIdx < this._notesToRender.length) {
                             const reusedNote = this._notesToRender[this._renderNoteIdx];
@@ -466,13 +474,14 @@ namespace SongVisualizer {
                             reusedNote.width = width;
                             reusedNote.height = height;
                             reusedNote.color = color;
+                            reusedNote.highlight = highlight;
                             reusedNote.trackIdx = trackIdx;
                             reusedNote.note = note;
                             reusedNote.active = active;
                             this._renderNoteIdx++;
                         } else {
                             this._notesToRender.push({
-                                left, top, width, height, color, trackIdx, note, active
+                                left, top, width, height, color, highlight, trackIdx, note, active
                             });
                         }
                     }
@@ -515,6 +524,7 @@ namespace SongVisualizer {
                         const isBlack = this.isBlackKey(note);
                         const width = isBlack ? this._blackKeyImage.width : (this._whiteKeyImage.width - 1);
                         const color = this._trackColors[trackIdx];
+                        const highlight = this.tracksToHighlight.indexOf(trackIdx) != -1;
                         const left = this._keyLefts[note] + (isBlack ? 0 : 1);
                         if (this._renderNoteIdx < this._notesToRender.length) {
                             const reusedNote = this._notesToRender[this._renderNoteIdx];
@@ -523,13 +533,14 @@ namespace SongVisualizer {
                             reusedNote.width = width;
                             reusedNote.height = height;
                             reusedNote.color = color;
+                            reusedNote.highlight = highlight;
                             reusedNote.trackIdx = trackIdx;
                             reusedNote.note = note;
                             reusedNote.active = active;
                             this._renderNoteIdx++;
                         } else {
                             this._notesToRender.push({
-                                left, top, width, height, color, trackIdx, note, active
+                                left, top, width, height, color, highlight, trackIdx, note, active
                             });
                         }
                     }
@@ -545,11 +556,14 @@ namespace SongVisualizer {
                     if (isActive) {
                         const mostRecentTrackToPush = this.keyStates[i];
                         const trackColorToUse = this._trackColors[mostRecentTrackToPush];
+                        const img = this._whiteKeyActivatedImage;
                         // replace with the correct color
-                        this._whiteKeyActivatedImage.replace(colorToReplace, trackColorToUse);
-                        this.canvas.drawTransparentImage(this._whiteKeyActivatedImage, this._keyLefts[i], this.keyTop);
+                        img.replace(colorToReplace, trackColorToUse);
+                        const x = this._keyLefts[i];
+                        const y = this.keyTop;
+                        this.canvas.drawTransparentImage(img, x, y);
                         // reset it so next color replace works
-                        this._whiteKeyActivatedImage.replace(trackColorToUse, colorToReplace);
+                        img.replace(trackColorToUse, colorToReplace);
                     } else {
                         this.canvas.drawTransparentImage(this._whiteKeyImage, this._keyLefts[i], this.keyTop);
                     }
@@ -562,14 +576,30 @@ namespace SongVisualizer {
                     if (isActive) {
                         const mostRecentTrackToPush = this.keyStates[i];
                         const trackColorToUse = this._trackColors[mostRecentTrackToPush];
+                        const img = this._blackKeyActivatedImage;
                         // replace with the correct color
-                        this._blackKeyActivatedImage.replace(colorToReplace, trackColorToUse);
-                        this.canvas.drawTransparentImage(this._blackKeyActivatedImage, this._keyLefts[i], this.keyTop);
+                        img.replace(colorToReplace, trackColorToUse);
+                        const x = this._keyLefts[i];
+                        const y = this.keyTop;
+                        this.canvas.drawTransparentImage(img, x, y);
                         // reset it so next color replace works
-                        this._blackKeyActivatedImage.replace(trackColorToUse, colorToReplace);
+                        img.replace(trackColorToUse, colorToReplace);
                     } else {
                         this.canvas.drawTransparentImage(this._blackKeyImage, this._keyLefts[i], this.keyTop);
                     }
+                }
+            }
+            // draw key highlights
+            for (let i = 0; i < 128; i++) {
+                const img = this.isWhiteKey(i) ? this._whiteKeyImage : this._blackKeyImage;
+                let x = this._keyLefts[i];
+                if (this.isBlackKey(i)) { x --; }
+                const y = this.keyTop;
+                if (this.keyHighlight[i]) {
+                    let w = img.width + 1;
+                    if (this.isBlackKey(i)) { w ++; }
+                    const h = img.height + 1;
+                    this.canvas.drawRect(x, y, w, h, 5);
                 }
             }
         }
@@ -608,14 +638,18 @@ namespace SongVisualizer {
         private createInstrumentMenu() {
             this.instrumentMenuSprite = miniMenu.createMenuFromArray([]);
             this.instrumentMenuSprite.z = 1;
-            miniMenu.setTitle(this.instrumentMenuSprite, "Track Map");
             miniMenu.setMenuStyleProperty(this.instrumentMenuSprite, miniMenu.MenuStyleProperty.BackgroundColor, 15);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Foreground, 1);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Default, miniMenu.StyleProperty.Background, 15);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Foreground, 1);
-            miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Title, miniMenu.StyleProperty.Background, 15);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Foreground, 15);
             miniMenu.setStyleProperty(this.instrumentMenuSprite, miniMenu.StyleKind.Selected, miniMenu.StyleProperty.Background, 1);
+
+            const trackItem = miniMenu.createMenuItem("Track Map");
+            trackItem.setIcon(image.create(6, 6));
+            miniMenu.insertMenuItem(
+                this.instrumentMenuSprite,
+                trackItem
+            );
 
             for (let i = 0; i < this.songObj.tracks.length; i++) {
                 let trackName = `${i}`;
@@ -627,11 +661,22 @@ namespace SongVisualizer {
                 );
             }
 
-            this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, true);
+            miniMenu.moveSelection(this.instrumentMenuSprite, 1);
+
+            miniMenu.onSelectionChanged(this.instrumentMenuSprite, (selection: string, selectedIndex: number) => {
+                if (selectedIndex == 0) {
+                    this.tracksToHighlight = [];
+                } else {
+                    this.tracksToHighlight = [selectedIndex - 1];
+                }
+            });
+
+            this.closeInstrumentMenu();
         }
 
         public openInstrumentMenu() {
             this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, false);
+            miniMenu.setButtonEventsEnabled(this.instrumentMenuSprite, true);
         }
 
         public get instrumentMenu(): Sprite {
@@ -659,7 +704,7 @@ namespace SongVisualizer {
                 }
                 trackName += `: ${noteCount}`;
 
-                const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, i);
+                const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, i + 1);
                 trackItem.setText(trackName);
 
                 const trackItemIcon = trackItem.getIcon()
@@ -670,10 +715,13 @@ namespace SongVisualizer {
                     trackItemIcon.drawRect(1, 1, trackItemIcon.width - 2, trackItemIcon.height - 2, 0);
                 }
             }
+            const trackItem = miniMenu.getMenuItem(this.instrumentMenuSprite, 0);
+            trackItem.setText("Track Map");
         }
 
         public closeInstrumentMenu() {
             this.instrumentMenuSprite.setFlag(SpriteFlag.Invisible, true);
+            miniMenu.setButtonEventsEnabled(this.instrumentMenuSprite, false);
         }
     }
 }
